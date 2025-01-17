@@ -58,10 +58,10 @@ while True:
         if click == 1:
             mouse = pygame.mouse.get_pos()
             if playXButton.collidepoint(mouse):
-                time.sleep(0.2)
+                # time.sleep(0.2)
                 user = ttt.X
             elif playOButton.collidepoint(mouse):
-                time.sleep(0.2)
+                # time.sleep(0.2)
                 user = ttt.O
 
     else:
@@ -111,7 +111,7 @@ while True:
         # Check for AI move
         if user != player and not game_over:
             if ai_turn:
-                time.sleep(0.5)
+                # time.sleep(0.5)
                 move = ttt.minimax(board)
                 board = ttt.result(board, move)
                 ai_turn = False
@@ -138,7 +138,7 @@ while True:
             if click == 1:
                 mouse = pygame.mouse.get_pos()
                 if againButton.collidepoint(mouse):
-                    time.sleep(0.2)
+                    # time.sleep(0.2)
                     user = None
                     board = ttt.initial_state()
                     ai_turn = False
