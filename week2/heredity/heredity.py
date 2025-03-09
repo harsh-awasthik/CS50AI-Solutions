@@ -127,13 +127,6 @@ def powerset(s):
         )
     ]
 
-def prob_of_gene(person, people, p, count):
-    if people[person]['mother'] is None:
-        p *= PROBS['gene'][count]
-        return p
-    else:
-        return (prob_of_gene(people[person]['mother'], people, p, count)  + prob_of_gene(people[person]['father'], people, p, count))* 0.5*count *0.99
-
 
 def joint_probability(people, one_gene, two_genes, have_trait):
     """
@@ -148,22 +141,29 @@ def joint_probability(people, one_gene, two_genes, have_trait):
     """
     p = 1
     for name in people:
-        if name in one_gene:
-            p *= prob_of_gene(name, people, 1, 1)
-        elif name in two_genes:
-            p *= prob_of_gene(name, people, 1, 2)
+        gene_num = 1 if name in one_gene else 2 if name in two_genes else 0
+        trait = True if name in have_trait else False
+
+        if people[name]['mother'] is None:
+            p *= PROBS["gene"][gene_num] * PROBS["trait"][gene_num][trait]
         else:
-            p *= PROBS['gene'][0]
-    
-    for name in people:
-        if name in have_trait:
-            p *= prob_of_gene(name, people, 1, 1) * PROBS["trait"][1][True] + prob_of_gene(name, people, 1, 2) * PROBS["trait"][2][True] + PROBS['gene'][0]*PROBS["trait"][0][True]
-        else:
-            p *= prob_of_gene(name, people, 1, 1) * PROBS["trait"][1][False] + prob_of_gene(name, people, 1, 2) * PROBS["trait"][2][False] + PROBS['gene'][0]*PROBS["trait"][0][False] 
-                
+            m = people[name]['mother']
+            f = people[name]['father']
+            m_gene_num = 1 if m in one_gene else 2 if m in two_genes else 0
+            f_gene_num = 1 if f in one_gene else 2 if f in two_genes else 0
+
+            frm_m = 0.99 if m_gene_num == 0 else 0.5 if m_gene_num == 1 else 0.01
+            frm_f = 0.99 if f_gene_num == 0 else 0.5 if f_gene_num == 1 else 0.01
+            match gene_num:
+                case 0:
+                    p *= frm_m * frm_f
+                case 1:
+                    p *= frm_m*(1-frm_f) + frm_f*(1-frm_m)
+                case 2:
+                    p *= (1-frm_m)*(1-frm_f)
+
+            p *= PROBS["trait"][gene_num][trait]
     return p
-
-
 
 
 def update(probabilities, one_gene, two_genes, have_trait, p):
@@ -173,7 +173,13 @@ def update(probabilities, one_gene, two_genes, have_trait, p):
     Which value for each distribution is updated depends on whether
     the person is in `have_gene` and `have_trait`, respectively.
     """
-    raise NotImplementedError
+    for person in probabilities:
+        gene_num = 1 if person in one_gene else 2 if person in two_genes else 0
+        trait = True if person in have_trait else False
+
+        probabilities[person]['gene'][gene_num] += p
+        probabilities[person]['trait'][trait] += p
+        
 
 
 def normalize(probabilities):
@@ -181,8 +187,20 @@ def normalize(probabilities):
     Update `probabilities` such that each probability distribution
     is normalized (i.e., sums to 1, with relative proportions the same).
     """
-    raise NotImplementedError
+    for person in probabilities:
+        gene0 = probabilities[person]['gene'][0]
+        gene1 = probabilities[person]['gene'][1]
+        gene2 = probabilities[person]['gene'][2]
 
+        probabilities[person]['gene'][0] = gene0/(gene0 + gene1 + gene2)
+        probabilities[person]['gene'][1] = gene1/(gene0 + gene1 + gene2)
+        probabilities[person]['gene'][2] = gene2/(gene0 + gene1 + gene2)
 
+        trait_true = probabilities[person]['trait'][True]
+        trait_false = probabilities[person]['trait'][False]
+
+        probabilities[person]['trait'][True] = trait_true/(trait_true+trait_false)
+        probabilities[person]['trait'][False] = trait_false/(trait_true+trait_false)
+        
 if __name__ == "__main__":
     main()
